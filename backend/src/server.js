@@ -1,29 +1,51 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 
+// 1. Initialize environment variables first
 dotenv.config();
 
-const passport = require('./config/passport.js'); 
-const connectDB = require('./config/db.js');
-const { errorHandler } = require('./middlewares/errorMiddleware.js');
+// 2. Validate environment variables before running the application
+const checkEnv = require('./config/envCheck');
+checkEnv();
 
+// 3. Import required configurations and utilities
+const passport = require('./config/passport');
+const connectDB = require('./config/db');
+const logger = require('./utils/logger');
+const { errorHandler } = require('./middlewares/errorMiddleware');
+const { apiLimiter } = require('./middlewares/rateLimiterMiddleware');
+
+// Connect to MongoDB database
 connectDB();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(passport.initialize()); 
+// Security Middlewares
+app.use(helmet());
+app.use(
+    cors({
+        origin: process.env.CLIENT_URL || 'http://localhost:4200',
+        credentials: true,
+    })
+);
 
-// API Routes
-app.use('/api/auth', require('./routes/authRoutes.js'));
-app.use('/api/habits', require('./routes/habitRoutes.js'));
+// Body Parsing & Rate Limiting
+app.use(express.json({ limit: '10kb' }));
+app.use('/api', apiLimiter);
 
-// Central Error Handler
+// Authentication Middleware Initialization
+app.use(passport.initialize());
+
+// API Route Handler Mounting
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/habits', require('./routes/habitRoutes'));
+
+// Centralized Error Handling Middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
