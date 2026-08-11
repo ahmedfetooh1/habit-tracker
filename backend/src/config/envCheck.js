@@ -9,6 +9,8 @@ const checkEnv = () => {
         'PORT',
         'MONGO_URI',
         'JWT_SECRET',
+        'JWT_ACCESS_SECRET',
+        'JWT_REFRESH_SECRET',
         'GOOGLE_CLIENT_ID',
         'GOOGLE_CLIENT_SECRET',
         'CLIENT_URL',

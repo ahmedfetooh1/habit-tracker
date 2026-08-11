@@ -1,8 +1,48 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+/**
+ * Generate Short-Lived Access Token (e.g., 15 minutes)
+ */
+const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
+  });
+};
+
+/**
+ * Generate Long-Lived Refresh Token (e.g., 7 days)
+ */
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
+  });
+};
+
+/**
+ * Helper to send Access Token in JSON response and Refresh Token in HttpOnly Cookie
+ */
+const sendTokenResponse = (user, statusCode, res) => {
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  const cookieOptions = {
+    httpOnly: true, // Prevents client-side JS from reading the cookie
+    secure: process.env.NODE_ENV === 'production', // Send only over HTTPS in production
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+
+  res
+    .status(statusCode)
+    .cookie('refreshToken', refreshToken, cookieOptions)
+    .json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      themePreference: user.themePreference,
+      accessToken,
+    });
 };
 
 // @desc    Register User
@@ -18,13 +58,7 @@ const registerUser = async (req, res, next) => {
     }
 
     const user = await User.create({ name, email, password });
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      themePreference: user.themePreference,
-      token: generateToken(user._id)
-    });
+    sendTokenResponse(user, 201, res);
   } catch (error) {
     next(error);
   }
@@ -33,25 +67,67 @@ const registerUser = async (req, res, next) => {
 // @desc    Login User
 // @route   POST /api/auth/login
 const loginUser = async (req, res, next) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            themePreference: user.themePreference,
-            token: generateToken(user._id)
-        });
-        } else {
-        res.status(401);
-        throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
-        }
-    } catch (error) {
-        next(error);
+      sendTokenResponse(user, 200, res);
+    } else {
+      res.status(401);
+      throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports = { registerUser, loginUser, generateToken };
+// @desc    Refresh Access Token using HttpOnly Refresh Token Cookie
+// @route   POST /api/auth/refresh
+const refreshToken = async (req, res, next) => {
+  try {
+    const refreshTokenCookie = req.cookies.refreshToken;
+
+    if (!refreshTokenCookie) {
+      res.status(401);
+      throw new Error('Not authorized, no refresh token provided');
+    }
+
+    const decoded = jwt.verify(
+      refreshTokenCookie,
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
+    );
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      res.status(401);
+      throw new Error('Invalid refresh token');
+    }
+
+    const newAccessToken = generateAccessToken(user._id);
+
+    res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    res.status(401);
+    next(new Error('Refresh token expired or invalid'));
+  }
+};
+
+// @desc    Logout User / Clear Refresh Token Cookie
+// @route   POST /api/auth/logout
+const logoutUser = (req, res) => {
+  res.cookie('refreshToken', '', {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  res.status(200).json({ message: 'Logged out successfully' });
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  refreshToken,
+  logoutUser,
+  generateAccessToken,
+  generateRefreshToken,
+};

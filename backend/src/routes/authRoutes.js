@@ -1,19 +1,26 @@
 const express = require('express');
 const passport = require('passport');
-const { registerUser, loginUser, generateToken } = require('../controllers/authController');
+const {
+    registerUser,
+    loginUser,
+    refreshToken,
+    logoutUser,
+    generateAccessToken,
+    generateRefreshToken,
+} = require('../controllers/authController');
 const { authLimiter } = require('../middlewares/rateLimiterMiddleware');
 const { validateRegister, validateLogin } = require('../middlewares/validationMiddleware');
 
 const router = express.Router();
 
-// Apply stricter rate limits to authentication routes to prevent brute-force attacks
+// Apply rate limits to authentication endpoints
 router.use(authLimiter);
 
-// User Registration Route
+// Authentication Endpoints
 router.post('/register', validateRegister, registerUser);
-
-// User Login Route
 router.post('/login', validateLogin, loginUser);
+router.post('/refresh', refreshToken);
+router.post('/logout', logoutUser);
 
 // Google OAuth Authentication Routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
@@ -22,9 +29,19 @@ router.get(
     '/google/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/login' }),
     (req, res) => {
-        const token = generateToken(req.user._id);
+        const accessToken = generateAccessToken(req.user._id);
+        const refreshToken = generateRefreshToken(req.user._id);
+
+        // Attach Refresh Token as HttpOnly Cookie
+        res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
         const clientUrl = process.env.CLIENT_URL || 'http://localhost:4200';
-        res.redirect(`${clientUrl}/auth-success?token=${token}`);
+        res.redirect(`${clientUrl}/auth-success?token=${accessToken}`);
     }
 );
 
