@@ -1,22 +1,29 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-/**
- * Generate Short-Lived Access Token (e.g., 15 minutes)
- */
 const generateAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
   });
 };
 
-/**
- * Generate Long-Lived Refresh Token (e.g., 7 days)
- */
 const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
   });
+};
+
+/**
+ * Helper to get cookie options dynamically based on environment
+ */
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax', // 'none' is required for cross-domain HTTPS cookies
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
 };
 
 /**
@@ -26,16 +33,9 @@ const sendTokenResponse = (user, statusCode, res) => {
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  const cookieOptions = {
-    httpOnly: true, // Prevents client-side JS from reading the cookie
-    secure: process.env.NODE_ENV === 'production', // Send only over HTTPS in production
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  };
-
   res
     .status(statusCode)
-    .cookie('refreshToken', refreshToken, cookieOptions)
+    .cookie('refreshToken', refreshToken, getCookieOptions())
     .json({
       _id: user._id,
       name: user.name,
@@ -117,7 +117,7 @@ const refreshToken = async (req, res, next) => {
 // @route   POST /api/auth/logout
 const logoutUser = (req, res) => {
   res.cookie('refreshToken', '', {
-    httpOnly: true,
+    ...getCookieOptions(),
     expires: new Date(0),
   });
   res.status(200).json({ message: 'Logged out successfully' });

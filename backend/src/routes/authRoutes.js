@@ -31,12 +31,13 @@ router.get(
     (req, res) => {
         const accessToken = generateAccessToken(req.user._id);
         const refreshToken = generateRefreshToken(req.user._id);
+        const isProduction = process.env.NODE_ENV === 'production';
 
-        // Attach Refresh Token as HttpOnly Cookie
+        // Attach Refresh Token as HttpOnly Cookie with production cross-domain support
         res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 

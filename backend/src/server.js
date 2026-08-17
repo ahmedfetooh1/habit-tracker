@@ -25,6 +25,9 @@ connectDB();
 
 const app = express();
 
+// Trust reverse proxy (Required for deployment platforms like Render/Railway/Heroku)
+app.set('trust proxy', 1);
+
 // Security Middlewares
 app.use(helmet());
 app.use(
@@ -45,7 +48,7 @@ app.use(passport.initialize());
 // Setup Swagger API Documentation UI
 setupSwagger(app);
 
-// Health Check Endpoint for Monitoring & Load Balancers
+// Health Check Endpoint
 app.get('/health', (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
     res.status(200).json({
