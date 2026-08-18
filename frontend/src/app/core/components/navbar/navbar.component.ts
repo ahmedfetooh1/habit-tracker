@@ -1,26 +1,27 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
-import { TranslationService } from '../../services/translation.service';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, TranslatePipe],
   template: `
     <nav class="navbar">
       <div class="logo-group">
         <div class="logo">
-          <a routerLink="/dashboard">🎯 Habit Tracker</a>
+          <a routerLink="/dashboard">🎯 {{ 'NAV.APP_TITLE' | translate }}</a>
         </div>
 
         @if (authService.isAuthenticated()) {
           <div class="nav-links">
-            <a routerLink="/dashboard" routerLinkActive="active">الرئيسية</a>
-            <a routerLink="/analytics" routerLinkActive="active">الإحصائيات 📊</a>
-            <a routerLink="/profile" routerLinkActive="active">الملف الشخصي 👤</a>
+            <a routerLink="/dashboard" routerLinkActive="active">{{ 'NAV.HOME' | translate }}</a>
+            <a routerLink="/analytics" routerLinkActive="active">{{ 'NAV.STATS' | translate }}</a>
+            <a routerLink="/profile" routerLinkActive="active">{{ 'NAV.PROFILE' | translate }}</a>
           </div>
         }
       </div>
@@ -30,13 +31,16 @@ import { TranslationService } from '../../services/translation.service';
           {{ themeService.currentTheme() === 'light' ? '🌙' : '☀️' }}
         </button>
 
-        <button (click)="translationService.toggleLanguage()" class="icon-btn">
-          {{ translationService.currentLang() === 'ar' ? 'EN' : 'عربي' }}
+        <!-- زر تغيير اللغة الموحد -->
+        <button (click)="languageService.toggleLanguage()" class="icon-btn">
+          🌐 {{ 'NAV.LANG_BTN' | translate }}
         </button>
 
         @if (authService.isAuthenticated()) {
           <span class="user-name">{{ authService.currentUser()?.name }}</span>
-          <button (click)="authService.logout()" class="logout-btn">خروج</button>
+          <button (click)="authService.logout()" class="logout-btn">
+            {{ 'NAV.LOGOUT' | translate }}
+          </button>
         }
       </div>
     </nav>
@@ -59,5 +63,5 @@ import { TranslationService } from '../../services/translation.service';
 export class NavbarComponent {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
-  translationService = inject(TranslationService);
+  languageService = inject(LanguageService);
 }

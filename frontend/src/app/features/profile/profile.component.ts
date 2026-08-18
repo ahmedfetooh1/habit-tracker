@@ -1,86 +1,109 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
   template: `
     <div class="profile-container">
-      <h2>الملف الشخصي والإعدادات ⚙️</h2>
+      <h2>{{ 'PROFILE.TITLE' | translate }}</h2>
 
       <div class="profile-card">
-        <h3>تعديل البيانات الشخصية</h3>
-
         <form [formGroup]="profileForm" (ngSubmit)="onUpdateProfile()">
           <div class="form-group">
-            <label>الاسم الكامل</label>
-            <input type="text" formControlName="name" placeholder="أدخل اسمك" />
+            <label>{{ 'PROFILE.NAME' | translate }}</label>
+            <input type="text" formControlName="name" />
           </div>
 
           <div class="form-group">
-            <label>البريد الإلكتروني</label>
-            <input type="email" formControlName="email" readonly class="readonly-input" />
+            <label>{{ 'PROFILE.EMAIL' | translate }}</label>
+            <input type="email" formControlName="email" />
           </div>
 
-          <button type="submit" [disabled]="profileForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'جاري الحفظ...' : 'حفظ التعديلات' }}
+          @if (successMessage()) {
+            <p class="success-msg">{{ successMessage() }}</p>
+          }
+
+          <button type="submit" [disabled]="profileForm.invalid || isLoading()">
+            {{ isLoading() ? ('COMMON.LOADING' | translate) : ('PROFILE.SAVE_BTN' | translate) }}
           </button>
         </form>
+      </div>
 
-        <p *ngIf="message()" class="success-msg">{{ message() }}</p>
+      <div class="profile-card password-section">
+        <h3>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</h3>
+
+        <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()">
+          <div class="form-group">
+            <label>{{ 'PROFILE.OLD_PASSWORD' | translate }}</label>
+            <input type="password" formControlName="oldPassword" />
+          </div>
+
+          <div class="form-group">
+            <label>{{ 'PROFILE.NEW_PASSWORD' | translate }}</label>
+            <input type="password" formControlName="newPassword" />
+          </div>
+
+          @if (passwordSuccessMessage()) {
+            <p class="success-msg">{{ passwordSuccessMessage() }}</p>
+          }
+
+          <button type="submit" [disabled]="passwordForm.invalid || isPasswordLoading()">
+            {{ isPasswordLoading() ? ('COMMON.LOADING' | translate) : ('PROFILE.UPDATE_PASSWORD_BTN' | translate) }}
+          </button>
+        </form>
       </div>
     </div>
   `,
   styles: [`
-    .profile-container { max-width: 600px; margin: 0 auto; }
-    .profile-card { background: var(--bg-card); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); }
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
-    .form-group label { font-size: 0.9rem; color: var(--text-secondary); }
-    .form-group input { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); }
-    .readonly-input { opacity: 0.7; cursor: not-allowed; }
-    button { padding: 0.7rem 1.5rem; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .success-msg { color: #10b981; margin-top: 1rem; font-weight: 500; }
+    .profile-container { padding: 2rem; max-width: 600px; margin: 0 auto; }
+    h2, h3 { margin-bottom: 1.5rem; color: var(--text-primary); }
+    .profile-card { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 2rem; }
+    .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
+    label { font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.3rem; }
+    input { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); }
+    input:disabled { opacity: 0.6; cursor: not-allowed; }
+    button { padding: 0.75rem; background: var(--accent-color); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .success-msg { color: #22c55e; font-size: 0.875rem; margin-bottom: 0.5rem; }
   `]
 })
-export class ProfileComponent implements OnInit {
-  authService = inject(AuthService);
+export class ProfileComponent {
   private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
 
-  isSubmitting = signal(false);
-  message = signal('');
+  isLoading = signal(false);
+  isPasswordLoading = signal(false);
+  successMessage = signal('');
+  passwordSuccessMessage = signal('');
+
+  currentUser = this.authService.currentUser;
 
   profileForm = this.fb.group({
-    name: ['', Validators.required],
-    email: ['']
+    name: [this.currentUser()?.name || '', [Validators.required]],
+    email: [{ value: this.currentUser()?.email || '', disabled: true }]
   });
 
-  ngOnInit(): void {
-    const user = this.authService.currentUser();
-    if (user) {
-      this.profileForm.patchValue({
-        name: user.name,
-        email: user.email
-      });
-    }
-  }
+  passwordForm = this.fb.group({
+    oldPassword: ['', [Validators.required]],
+    newPassword: ['', [Validators.required, Validators.minLength(6)]]
+  });
 
   onUpdateProfile(): void {
     if (this.profileForm.invalid) return;
-    this.isSubmitting.set(true);
+    this.isLoading.set(true);
 
-    // محاكاة حفظ التعديلات تحديث اسم المستخدم محلياً في Signal
-    setTimeout(() => {
-      const updatedName = this.profileForm.value.name!;
-      const currentUser = this.authService.currentUser();
-      if (currentUser) {
-        this.authService.currentUser.set({ ...currentUser, name: updatedName });
-      }
-      this.isSubmitting.set(false);
-      this.message.set('تم تحديث البيانات بنجاح! ✅');
-    }, 500);
+    // تنفيذ تحديث البيانات
+  }
+
+  onChangePassword(): void {
+    if (this.passwordForm.invalid) return;
+    this.isPasswordLoading.set(true);
+
+    // تنفيذ تغيير كلمة السر
   }
 }

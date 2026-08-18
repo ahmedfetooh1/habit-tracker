@@ -1,0 +1,75 @@
+{
+  "NAV": {
+    "APP_TITLE": "Habit Tracker 🎯",
+    "HOME": "Home",
+    "STATS": "Statistics 📊",
+    "PROFILE": "Profile 👤",
+    "LOGOUT": "Logout",
+    "LANG_BTN": "عربي"
+  },
+  "DASHBOARD": {
+    "TITLE": "Habit Tracker Dashboard 🎯",
+    "SELECT_DATE": "📅 Select date to track habits:",
+    "TODAY": "Today",
+    "VIEW_DATE": "Viewing habits for:",
+    "ADD_NEW": "Add New Habit",
+    "HABIT_NAME": "Habit title (e.g., Reading)",
+    "SHORT_DESC": "Short description (optional)",
+    "REMINDER_TIME": "Reminder time ⏰:",
+    "ADD_BTN": "Add Habit",
+    "ADDING_BTN": "Adding...",
+    "LOADING": "Loading habits...",
+    "EMPTY": "No habits recorded for this date ({{date}}).",
+    "STREAK": "🔥 Streak: {{count}} days",
+    "COMPLETED": "Completed ✔️",
+    "MARK_COMPLETED": "Mark as completed ⭕",
+    "DELETE": "Delete",
+    "CONFIRM_DELETE": "Are you sure you want to delete this habit?",
+    "FREQUENCIES": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    }
+  },
+  "ANALYTICS": {
+    "TITLE": "Habits Analytics 📊",
+    "TOTAL_HABITS": "Total Habits",
+    "COMPLETED_TODAY": "Completed Today",
+    "COMPLETION_RATE": "Completion Rate",
+    "BEST_STREAK": "Best Streak 🔥",
+    "WEEKLY_PROGRESS": "Weekly Progress",
+    "MONTHLY_OVERVIEW": "Monthly Overview",
+    "NO_DATA": "Not enough data to display analytics yet."
+  },
+  "PROFILE": {
+    "TITLE": "User Profile 👤",
+    "NAME": "Full Name",
+    "EMAIL": "Email Address",
+    "JOINED_DATE": "Joined Date",
+    "EDIT_PROFILE": "Edit Profile",
+    "SAVE_CHANGES": "Save Changes",
+    "CHANGE_PASSWORD": "Change Password",
+    "THEME_PREFERENCE": "Theme Preference"
+  },
+  "AUTH": {
+    "LOGIN_TITLE": "Login",
+    "REGISTER_TITLE": "Create New Account",
+    "EMAIL_PLACEHOLDER": "Enter your email",
+    "PASSWORD_PLACEHOLDER": "Enter your password",
+    "NAME_PLACEHOLDER": "Enter your full name",
+    "LOGIN_BTN": "Login",
+    "REGISTER_BTN": "Register",
+    "NO_ACCOUNT": "Don't have an account?",
+    "HAVE_ACCOUNT": "Already have an account?",
+    "CREATE_ONE": "Sign Up",
+    "SIGN_IN": "Sign In"
+  },
+  "COMMON": {
+    "SUCCESS": "Operation completed successfully",
+    "ERROR": "An error occurred, please try again later",
+    "CANCEL": "Cancel",
+    "SAVE": "Save",
+    "LOADING": "Loading..."
+  }
+}

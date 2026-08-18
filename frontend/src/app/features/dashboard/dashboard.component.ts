@@ -1,67 +1,77 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HabitService } from '../../core/services/habit.service';
+import { LanguageService } from '../../core/services/language.service';
 import { Habit } from '../../core/models/habit.model';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
   template: `
     <div class="dashboard-container">
-      <h2>لوحة متابعة العادات 🎯</h2>
+      <div class="top-bar">
+        <h2>{{ 'DASHBOARD.TITLE' | translate }}</h2>
+      </div>
 
       <!-- قسم التقويم واختيار اليوم -->
       <div class="calendar-card">
         <div class="date-picker-header">
-          <label for="selectedDate">📅 اختر التاريخ لمتابعة العادات:</label>
+          <label for="selectedDate">{{ 'DASHBOARD.SELECT_DATE' | translate }}</label>
           <input
             type="date"
             id="selectedDate"
             [value]="selectedDate()"
             (change)="onDateChange($event)"
           />
-          <button type="button" class="today-btn" (click)="resetToToday()">اليوم</button>
+          <button type="button" class="today-btn" (click)="resetToToday()">
+            {{ 'DASHBOARD.TODAY' | translate }}
+          </button>
         </div>
-        <p class="current-view-text">عرض عادات يوم: <strong>{{ selectedDate() }}</strong></p>
+        <p class="current-view-text">
+          {{ 'DASHBOARD.VIEW_DATE' | translate }} <strong>{{ selectedDate() }}</strong>
+        </p>
       </div>
 
       <!-- نموذج إضافة عادة جديدة -->
       <div class="add-habit-card">
-        <h3>إضافة عادة جديدة</h3>
+        <h3>{{ 'DASHBOARD.ADD_NEW' | translate }}</h3>
         <form [formGroup]="habitForm" (ngSubmit)="onAddHabit()">
           <div class="form-row">
-            <input type="text" formControlName="title" placeholder="اسم العادة (مثلاً: القراءة)" />
-            <input type="text" formControlName="description" placeholder="وصف قصير (اختياري)" />
+            <input type="text" formControlName="title" [placeholder]="'DASHBOARD.HABIT_NAME' | translate" />
+            <input type="text" formControlName="description" [placeholder]="'DASHBOARD.SHORT_DESC' | translate" />
           </div>
 
           <div class="form-row">
             <select formControlName="frequency">
-              <option value="daily">يومية (Daily)</option>
-              <option value="weekly">أسبوعية (Weekly)</option>
-              <option value="monthly">شهرية (Monthly)</option>
-              <option value="yearly">سنوية (Yearly)</option>
+              <option value="daily">{{ 'DASHBOARD.FREQUENCIES.DAILY' | translate }}</option>
+              <option value="weekly">{{ 'DASHBOARD.FREQUENCIES.WEEKLY' | translate }}</option>
+              <option value="monthly">{{ 'DASHBOARD.FREQUENCIES.MONTHLY' | translate }}</option>
+              <option value="yearly">{{ 'DASHBOARD.FREQUENCIES.YEARLY' | translate }}</option>
             </select>
 
             <div class="time-picker">
-              <label>وقت التنبيه ⏰:</label>
+              <label>{{ 'DASHBOARD.REMINDER_TIME' | translate }}</label>
               <input type="time" formControlName="reminderTime" />
             </div>
 
             <button type="submit" [disabled]="habitForm.invalid || isSubmitting()">
-              {{ isSubmitting() ? 'جاري الإضافة...' : 'إضافة العادة' }}
+              {{ isSubmitting() ? ('DASHBOARD.ADDING_BTN' | translate) : ('DASHBOARD.ADD_BTN' | translate) }}
             </button>
           </div>
         </form>
       </div>
 
-      <!-- قائمة العادات للملف/التاريخ المختار -->
+      <!-- قائمة العادات -->
       <div class="habits-list">
         @if (habitService.isLoading()) {
-          <p class="loading-msg">جاري تحميل العادات...</p>
+          <p class="loading-msg">{{ 'DASHBOARD.LOADING' | translate }}</p>
         } @else if (filteredHabits().length === 0) {
-          <p class="empty-msg">لا توجد عادات مسجلة لهذا التاريخ ({{ selectedDate() }}).</p>
+          <p class="empty-msg">
+            {{ 'DASHBOARD.EMPTY' | translate:{ date: selectedDate() } }}
+          </p>
         } @else {
           <div *ngFor="let habit of filteredHabits()" class="habit-item">
             <div class="habit-info">
@@ -72,7 +82,9 @@ import { Habit } from '../../core/models/habit.model';
               <p *ngIf="habit.description">{{ habit.description }}</p>
 
               <div class="meta-info">
-                <span class="streak">🔥 التتابع: {{ habit.streak || 0 }} أيام</span>
+                <span class="streak">
+                  {{ 'DASHBOARD.STREAK' | translate:{ count: habit.streak || 0 } }}
+                </span>
                 <span *ngIf="habit.reminderTime" class="reminder-badge">⏰ {{ habit.reminderTime }}</span>
               </div>
             </div>
@@ -81,10 +93,12 @@ import { Habit } from '../../core/models/habit.model';
               <button
                 [class.completed]="isCompletedOnSelectedDate(habit)"
                 (click)="toggleHabit(habit)">
-                {{ isCompletedOnSelectedDate(habit) ? 'مكتملة ✔️' : 'تحديد كـ مكتملة ⭕' }}
+                {{ isCompletedOnSelectedDate(habit) ? ('DASHBOARD.COMPLETED' | translate) : ('DASHBOARD.MARK_COMPLETED' | translate) }}
               </button>
 
-              <button class="delete-btn" (click)="onDelete(getHabitId(habit))">حذف</button>
+              <button class="delete-btn" (click)="onDelete(getHabitId(habit))">
+                {{ 'DASHBOARD.DELETE' | translate }}
+              </button>
             </div>
           </div>
         }
@@ -93,6 +107,8 @@ import { Habit } from '../../core/models/habit.model';
   `,
   styles: [`
     .dashboard-container { max-width: 800px; margin: 0 auto; padding: 1rem; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .lang-btn { background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; color: var(--text-primary); font-weight: bold; }
 
     .calendar-card { background: var(--bg-card); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); }
     .date-picker-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
@@ -126,15 +142,16 @@ import { Habit } from '../../core/models/habit.model';
 })
 export class DashboardComponent implements OnInit {
   habitService = inject(HabitService);
+  langService = inject(LanguageService);
+  private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
 
   selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
   isSubmitting = signal<boolean>(false);
 
-  // تصفية العادات بناءً على التكرار والأنماط التاريخية والأرشفة
   filteredHabits = computed(() => {
     const habits = this.habitService.habits();
-    const selectedStr = this.selectedDate(); // YYYY-MM-DD
+    const selectedStr = this.selectedDate();
 
     const [sYear, sMonth, sDay] = selectedStr.split('-').map(Number);
     const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
@@ -149,10 +166,8 @@ export class DashboardComponent implements OnInit {
         createdDate.getDate()
       );
 
-      // 1. عدم إظهار العادة قبل تاريخ الإنشاء
       if (selectedDateObj < createdDateObj) return false;
 
-      // 2. عدم إظهار العادة بدءاً من يوم الأرشفة وما بعده
       if (habit.archivedAt) {
         const archivedDate = new Date(habit.archivedAt);
         const archivedDateObj = new Date(
@@ -163,7 +178,6 @@ export class DashboardComponent implements OnInit {
         if (selectedDateObj >= archivedDateObj) return false;
       }
 
-      // 3. مطابقة العادة بناءً على جدول التكرار
       const freq = habit.frequency || 'daily';
 
       switch (freq) {
@@ -240,17 +254,14 @@ export class DashboardComponent implements OnInit {
 
   onDelete(id: string): void {
     if (!id) return;
-    if (confirm('هل أنت تأكد من حذف هذه العادة؟')) {
+    const confirmMsg = this.translate.instant('DASHBOARD.CONFIRM_DELETE');
+    if (confirm(confirmMsg)) {
       this.habitService.deleteHabit(id).subscribe();
     }
   }
 
   getFrequencyLabel(freq: string | undefined): string {
-    switch (freq) {
-      case 'weekly': return 'أسبوعية';
-      case 'monthly': return 'شهرية';
-      case 'yearly': return 'سنوية';
-      default: return 'يومية';
-    }
+    const key = (freq || 'daily').toUpperCase();
+    return this.translate.instant(`DASHBOARD.FREQUENCIES.${key}`);
   }
 }

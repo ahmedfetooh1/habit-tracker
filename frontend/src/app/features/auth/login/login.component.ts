@@ -2,26 +2,35 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core'; // 👈 استيراد TranslatePipe
 import { AuthService } from '../../../core/services/auth.service';
-import { environment } from '../../../../environments/environment'; // <-- الاستيراد الناقص هنا
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, TranslatePipe], // 👈 إضافته في imports
   template: `
     <div class="auth-container">
       <div class="auth-card">
-        <h2>تسجيل الدخول</h2>
+        <h2>{{ 'AUTH.LOGIN_TITLE' | translate }}</h2>
+
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-group">
-            <label>البريد الإلكتروني</label>
-            <input type="email" formControlName="email" placeholder="example@domain.com" />
+            <label>{{ 'PROFILE.EMAIL' | translate }}</label>
+            <input
+              type="email"
+              formControlName="email"
+              [placeholder]="'AUTH.EMAIL_PLACEHOLDER' | translate"
+            />
           </div>
 
           <div class="form-group">
-            <label>كلمة المرور</label>
-            <input type="password" formControlName="password" placeholder="********" />
+            <label>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</label>
+            <input
+              type="password"
+              formControlName="password"
+              [placeholder]="'AUTH.PASSWORD_PLACEHOLDER' | translate"
+            />
           </div>
 
           @if (errorMessage()) {
@@ -29,7 +38,7 @@ import { environment } from '../../../../environments/environment'; // <-- ال�
           }
 
           <button type="submit" [disabled]="loginForm.invalid || isLoading()">
-            {{ isLoading() ? 'جاري التحميل...' : 'دخول' }}
+            {{ isLoading() ? ('COMMON.LOADING' | translate) : ('AUTH.LOGIN_BTN' | translate) }}
           </button>
         </form>
 
@@ -42,10 +51,13 @@ import { environment } from '../../../../environments/environment'; // <-- ال�
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
           </svg>
-          تسجيل الدخول بواسطة Google
+          Google
         </button>
 
-        <p class="switch-auth">ليس لديك حساب؟ <a routerLink="/register">إنشاء حساب جديد</a></p>
+        <p class="switch-auth">
+          {{ 'AUTH.NO_ACCOUNT' | translate }}
+          <a routerLink="/register">{{ 'AUTH.CREATE_ONE' | translate }}</a>
+        </p>
       </div>
     </div>
   `,
@@ -58,8 +70,8 @@ import { environment } from '../../../../environments/environment'; // <-- ال�
     .google-btn { background: #ffffff; color: #757575; border: 1px solid var(--border-color); margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background-color 0.2s; }
     .google-btn:hover { background-color: #f8f9fa; }
     .google-icon { width: 18px; height: 18px; }
-    .error-msg { color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; }
     .divider { text-align: center; margin: 1rem 0; color: var(--text-secondary); }
+    .error-msg { color: #ef4444; font-size: 0.875rem; margin-bottom: 0.5rem; }
     .switch-auth { text-align: center; margin-top: 1rem; }
   `]
 })
@@ -73,7 +85,7 @@ export class LoginComponent {
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    password: ['', [Validators.required]]
   });
 
   onSubmit(): void {
@@ -88,16 +100,12 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.error?.message || 'فشل تسجيل الدخول، تحقق من البيانات');
+        this.errorMessage.set(err.error?.message || 'بيانات الدخول غير صحيحة');
       }
     });
   }
 
   onGoogleLogin(): void {
-    if (typeof (this.authService as any).loginWithGoogle === 'function') {
-      (this.authService as any).loginWithGoogle();
-    } else {
-      window.location.href = `${environment.apiUrl.replace('/api', '')}/api/auth/google`;
-    }
+    this.authService.loginWithGoogle();
   }
 }
