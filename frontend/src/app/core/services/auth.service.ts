@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   loginWithGoogle(): void {
-    // Redirects browser to Node.js backend passport route
+    // التحويل المباشر إلى مسار Google OAuth بالباك إند
     window.location.href = `${this.apiUrl}/google`;
   }
 

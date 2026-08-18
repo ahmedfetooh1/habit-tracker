@@ -5,12 +5,14 @@ export interface HabitLog {
 
 export interface Habit {
   _id: string;
+  id?: string;
   title: string;
   description?: string;
   category?: string;
-  frequency: 'daily' | 'weekly';
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  reminderTime?: string; // HH:mm
   streak: number;
-  completedDates: string[]; // تواريخ الأيام المكتملة
+  completedDates: string[];
   createdAt?: string;
 }
 
@@ -18,5 +20,6 @@ export interface CreateHabitDto {
   title: string;
   description?: string;
   category?: string;
-  frequency?: 'daily' | 'weekly';
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  reminderTime?: string;
 }
