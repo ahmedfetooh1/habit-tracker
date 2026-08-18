@@ -131,15 +131,61 @@ export class DashboardComponent implements OnInit {
   selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
   isSubmitting = signal<boolean>(false);
 
-  // تصفية العادات التي تم إنشاؤها في هذا التاريخ أو قبله فقط
+  // تصفية العادات بناءً على التكرار والأنماط التاريخية والأرشفة
   filteredHabits = computed(() => {
     const habits = this.habitService.habits();
-    const selected = this.selectedDate();
+    const selectedStr = this.selectedDate(); // YYYY-MM-DD
+
+    const [sYear, sMonth, sDay] = selectedStr.split('-').map(Number);
+    const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
 
     return habits.filter(habit => {
       if (!habit.createdAt) return true;
-      const createdDate = new Date(habit.createdAt).toISOString().split('T')[0];
-      return createdDate <= selected;
+
+      const createdDate = new Date(habit.createdAt);
+      const createdDateObj = new Date(
+        createdDate.getFullYear(),
+        createdDate.getMonth(),
+        createdDate.getDate()
+      );
+
+      // 1. عدم إظهار العادة قبل تاريخ الإنشاء
+      if (selectedDateObj < createdDateObj) return false;
+
+      // 2. عدم إظهار العادة بدءاً من يوم الأرشفة وما بعده
+      if (habit.archivedAt) {
+        const archivedDate = new Date(habit.archivedAt);
+        const archivedDateObj = new Date(
+          archivedDate.getFullYear(),
+          archivedDate.getMonth(),
+          archivedDate.getDate()
+        );
+        if (selectedDateObj >= archivedDateObj) return false;
+      }
+
+      // 3. مطابقة العادة بناءً على جدول التكرار
+      const freq = habit.frequency || 'daily';
+
+      switch (freq) {
+        case 'daily':
+          return true;
+
+        case 'weekly': {
+          const diffInTime = selectedDateObj.getTime() - createdDateObj.getTime();
+          const diffInDays = Math.round(diffInTime / (1000 * 3600 * 24));
+          return diffInDays % 7 === 0;
+        }
+
+        case 'monthly':
+          return selectedDateObj.getDate() === createdDateObj.getDate();
+
+        case 'yearly':
+          return selectedDateObj.getDate() === createdDateObj.getDate() &&
+                 selectedDateObj.getMonth() === createdDateObj.getMonth();
+
+        default:
+          return true;
+      }
     });
   });
 
@@ -151,7 +197,6 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // جلب البيانات من السيرفر فور تشغيل المكون للتعامل مع الـ Refresh
     this.habitService.getHabits().subscribe();
   }
 

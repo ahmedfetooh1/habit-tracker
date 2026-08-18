@@ -1,19 +1,15 @@
-export interface HabitLog {
-  date: string; // YYYY-MM-DD
-  completed: boolean;
-}
-
 export interface Habit {
   _id: string;
   id?: string;
   title: string;
   description?: string;
   category?: string;
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  reminderTime?: string; // HH:mm
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  reminderTime?: string;
   streak: number;
   completedDates: string[];
   createdAt?: string;
+  archivedAt?: string;
 }
 
 export interface CreateHabitDto {
