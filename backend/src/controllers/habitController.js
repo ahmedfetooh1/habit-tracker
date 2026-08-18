@@ -96,7 +96,7 @@ const toggleHabitStatus = async (req, res, next) => {
     }
 };
 
-// أرشفة العادة لتظل السجلات القديمة محفوظة
+// أرشفة العادة لتظل السجلات القديمة محفوظة وتختفي من اليوم الحالي والقادم
 const deleteHabit = async (req, res, next) => {
     try {
         const habit = await Habit.findById(req.params.id);
@@ -111,7 +111,10 @@ const deleteHabit = async (req, res, next) => {
             throw new Error('غير مصرح لك بحذف هذه العادة');
         }
 
-        habit.archivedAt = new Date();
+        // حفظ تاريخ اليوم بفرمتة YYYY-MM-DD لتفادي فروق التوقيت
+        const todayStr = new Date().toISOString().split('T')[0];
+        habit.archivedAt = new Date(todayStr);
+
         await habit.save();
 
         res.json({ message: 'تم أرشفة العادة بنجاح ولن تظهر في الأيام القادمة' });
