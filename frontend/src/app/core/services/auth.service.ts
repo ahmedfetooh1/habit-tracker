@@ -13,7 +13,7 @@ export class AuthService {
   private router = inject(Router);
   private apiUrl = `${environment.apiUrl}/auth`;
 
-  // Signals for reactive state management
+  // Signals لإدارة حالة التوثيق والمستخدم
   currentUser = signal<User | null>(this.getStoredUser());
   isAuthenticated = signal<boolean>(!!localStorage.getItem('accessToken'));
 
@@ -35,26 +35,32 @@ export class AuthService {
   }
 
   loginWithGoogle(): void {
-    // التحويل المباشر إلى مسار Google OAuth بالباك إند
     window.location.href = `${this.apiUrl}/google`;
   }
 
   refreshToken(): Observable<{ accessToken: string }> {
-    return this.http.post<{ accessToken: string }>(`${this.apiUrl}/refresh`, {}).pipe(
+    // إرسال withCredentials: true ضروري جداً لقراءة الـ Cookie الخاصة بالـ Refresh Token
+    return this.http.post<{ accessToken: string }>(
+      `${this.apiUrl}/refresh`,
+      {},
+      { withCredentials: true }
+    ).pipe(
       tap(res => {
         localStorage.setItem('accessToken', res.accessToken);
         this.isAuthenticated.set(true);
       }),
       catchError(err => {
-        this.logout();
+        // تنظيف الجلسة محلياً دون استدعاء API الـ logout لمنع التكرار
+        this.clearSession();
         return throwError(() => err);
       })
     );
   }
 
   logout(): void {
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
-      complete: () => this.clearSession(),
+    // إرسال طلب تسجيل الخروج مع withCredentials لحذف الـ Cookie من الباك إند
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
+      next: () => this.clearSession(),
       error: () => this.clearSession()
     });
   }
@@ -74,7 +80,7 @@ export class AuthService {
     this.isAuthenticated.set(true);
   }
 
-  private clearSession(): void {
+  clearSession(): void {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     this.currentUser.set(null);

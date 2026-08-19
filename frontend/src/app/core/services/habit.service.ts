@@ -1,8 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, throwError } from 'rxjs';
+import { Observable, tap } from 'rxjs';
+import { Habit } from '../models/habit.model';
 import { environment } from '../../../environments/environment';
-import { Habit, CreateHabitDto } from '../models/habit.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,97 +11,116 @@ export class HabitService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/habits`;
 
-  habits = signal<Habit[]>([]);
-  isLoading = signal<boolean>(false);
+  readonly habits = signal<Habit[]>([]);
+  readonly isLoading = signal<boolean>(false);
+
+  private matchesId(habit: Habit, id: string): boolean {
+    const habitId = habit._id || (habit as any).id;
+    return String(habitId) === String(id);
+  }
+
+  public toLocalYMD(dateInput: string | Date): string {
+    if (!dateInput) return '';
+
+    if (typeof dateInput === 'string') {
+      const cleanStr = dateInput.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanStr)) {
+        return cleanStr;
+      }
+    }
+
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput).split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 
   getHabits(): Observable<Habit[]> {
     this.isLoading.set(true);
     return this.http.get<Habit[]>(this.apiUrl).pipe(
-      tap(data => {
-        this.habits.set(data || []);
-        this.isLoading.set(false);
-        this.checkAndScheduleNotifications(data || []);
-      }),
-      catchError(err => {
-        this.isLoading.set(false);
-        console.error('Error fetching habits:', err);
-        return throwError(() => err);
+      tap({
+        next: (data) => {
+          const normalized = (data || []).map((h) => ({
+            ...h,
+            completedDates: (h.completedDates || []).map((d) => this.toLocalYMD(d))
+          }));
+          this.habits.set(normalized);
+          this.isLoading.set(false);
+        },
+        error: () => this.isLoading.set(false)
       })
     );
   }
 
-  createHabit(dto: CreateHabitDto): Observable<Habit> {
-    return this.http.post<Habit>(this.apiUrl, dto).pipe(
-      tap(newHabit => {
-        if (newHabit) {
-          this.habits.update(list => [...list, newHabit]);
-          this.scheduleSingleNotification(newHabit);
+  createHabit(habitData: Partial<Habit>): Observable<Habit> {
+    return this.http.post<any>(this.apiUrl, habitData).pipe(
+      tap((res: any) => {
+        const newHabit: Habit = res?.data || res?.habit || res;
+
+        if (!newHabit.createdAt) {
+          newHabit.createdAt = this.toLocalYMD(new Date());
         }
-      }),
-      catchError(err => {
-        console.error('Error creating habit:', err);
-        return throwError(() => err);
+
+        newHabit.completedDates = (newHabit.completedDates || []).map((d) => this.toLocalYMD(d));
+
+        this.habits.update((prev) => [...prev, newHabit]);
       })
     );
   }
 
-  toggleHabitStatus(habitId: string, date: string): Observable<Habit> {
-    return this.http.post<Habit>(`${this.apiUrl}/${habitId}/toggle`, { date }).pipe(
-      tap(updatedHabit => {
-        this.habits.update(list =>
-          list.map(h => {
-            const currentId = h._id || (h as any).id;
-            const updatedId = updatedHabit._id || (updatedHabit as any).id;
-            return currentId === updatedId ? updatedHabit : h;
-          })
-        );
-      }),
-      catchError(err => {
-        console.error('Error toggling habit:', err);
-        return throwError(() => err);
+  toggleHabitStatus(id: string, date: string): Observable<Habit> {
+    const targetDate = this.toLocalYMD(date);
+
+    // 1. التحديث اللحظي المحلي
+    this.habits.update((prev) =>
+      prev.map((h) => {
+        if (this.matchesId(h, id)) {
+          const dates = (h.completedDates || []).map((d) => this.toLocalYMD(d));
+          const exists = dates.includes(targetDate);
+
+          const updatedDates = exists
+            ? dates.filter((d) => d !== targetDate)
+            : [...dates, targetDate];
+
+          return { ...h, completedDates: updatedDates };
+        }
+        return h;
+      })
+    );
+
+    // 2. إرسال الطلب وحفظ النتيجة
+    return this.http.patch<any>(`${this.apiUrl}/${id}/toggle`, { date: targetDate }).pipe(
+      tap({
+        next: (res: any) => {
+          const updatedHabit: Habit = res?.data || res?.habit || res;
+
+          if (updatedHabit && Array.isArray(updatedHabit.completedDates)) {
+            const normalizedDates = updatedHabit.completedDates.map((d) => this.toLocalYMD(d));
+
+            this.habits.update((prev) =>
+              prev.map((h) =>
+                this.matchesId(h, id)
+                  ? { ...h, ...updatedHabit, completedDates: normalizedDates }
+                  : h
+              )
+            );
+          }
+        },
+        error: (err) => {
+          console.error('فشل حفظ التعديل في السيرفر:', err);
+          this.getHabits().subscribe();
+        }
       })
     );
   }
 
-  deleteHabit(habitId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${habitId}`).pipe(
+  deleteHabit(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       tap(() => {
-        this.habits.update(list =>
-          list.filter(h => (h._id || (h as any).id) !== habitId)
-        );
-      }),
-      catchError(err => {
-        console.error('Error deleting habit:', err);
-        return throwError(() => err);
+        this.habits.update((prev) => prev.filter((h) => !this.matchesId(h, id)));
       })
     );
-  }
-
-  // --- خدمة التنبيهات (Web Notifications) ---
-
-  private checkAndScheduleNotifications(habits: Habit[]): void {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    habits.forEach(habit => this.scheduleSingleNotification(habit));
-  }
-
-  private scheduleSingleNotification(habit: Habit): void {
-    if (!habit.reminderTime || !('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const [hours, minutes] = habit.reminderTime.split(':').map(Number);
-    const now = new Date();
-    const reminderDate = new Date();
-    reminderDate.setHours(hours, minutes, 0, 0);
-
-    // إذا كان الوقت المكتوب في اليوم قادماً
-    if (reminderDate > now) {
-      const timeToWait = reminderDate.getTime() - now.getTime();
-      setTimeout(() => {
-        new Notification(`⏰ حان موعد عادتك: ${habit.title}`, {
-          body: habit.description || 'لا تنسَ إنجاز عادتك اليوم وتوثيقها!',
-          icon: '/favicon.ico'
-        });
-      }, timeToWait);
-    }
   }
 }

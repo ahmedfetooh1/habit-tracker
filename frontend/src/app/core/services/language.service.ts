@@ -6,7 +6,8 @@ import { TranslateService } from '@ngx-translate/core';
 })
 export class LanguageService {
   private translate = inject(TranslateService);
-  currentLang = signal<string>(localStorage.getItem('lang') || 'ar');
+
+  readonly currentLang = signal<string>(localStorage.getItem('lang') || 'ar');
 
   constructor() {
     this.initLanguage(this.currentLang());

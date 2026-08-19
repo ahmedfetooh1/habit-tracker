@@ -1,13 +1,12 @@
 export interface Habit {
-  _id: string;
+  _id?: string;
   id?: string;
   title: string;
   description?: string;
-  category?: string;
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
   reminderTime?: string;
-  streak: number;
   completedDates: string[];
+  streak?: number;
   createdAt?: string;
   archivedAt?: string;
 }
