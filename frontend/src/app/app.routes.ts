@@ -2,7 +2,13 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  {
+    path: '',
+    redirectTo: 'login',
+    pathMatch: 'full'
+  },
+
+  // مسارات المصادقة العامة (Public Auth Routes)
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
@@ -11,6 +17,12 @@ export const routes: Routes = [
     path: 'register',
     loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   },
+  {
+    path: 'auth-success',
+    loadComponent: () => import('./features/auth/auth-success/auth-success.component').then(m => m.AuthSuccessComponent)
+  },
+
+  // المسارات المحمية للمستخدمين المسجلين (Protected Routes)
   {
     path: 'dashboard',
     canActivate: [authGuard],
@@ -26,9 +38,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
   },
+
+  // إعادة التوجيه للمسارات غير المعروفة (Wildcard Route)
   {
-    path: 'auth-success',
-    loadComponent: () => import('./features/auth/auth-success/auth-success.component').then(m => m.AuthSuccessComponent)
-  },
-  { path: '**', redirectTo: 'login' }
+    path: '**',
+    redirectTo: 'login'
+  }
 ];

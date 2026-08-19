@@ -1,10 +1,10 @@
 import { ApplicationConfig } from '@angular/core';
-import { provideHttpClient, withInterceptorsFromDi, HttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { Observable, catchError, of } from 'rxjs';
-
+import { jwtInterceptor } from './core/interceptors/jwt.interceptor'; // 👈 استيراد الـ Interceptor
 
 export class CustomTranslateLoader implements TranslateLoader {
   constructor(private http: HttpClient) {}
@@ -23,7 +23,10 @@ export class CustomTranslateLoader implements TranslateLoader {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptorsFromDi()),
+    // 👈 استبدال withInterceptorsFromDi بـ withInterceptors لتسجيل Functional Interceptor
+    provideHttpClient(
+      withInterceptors([jwtInterceptor])
+    ),
     provideTranslateService({
       fallbackLang: 'ar',
       loader: {

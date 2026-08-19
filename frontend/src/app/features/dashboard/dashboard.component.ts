@@ -16,7 +16,6 @@ import { Habit } from '../../core/models/habit.model';
         <h2>{{ 'DASHBOARD.TITLE' | translate }}</h2>
       </div>
 
-      <!-- قسم التقويم واختيار اليوم -->
       <div class="calendar-card">
         <div class="date-picker-header">
           <label for="selectedDate">{{ 'DASHBOARD.SELECT_DATE' | translate }}</label>
@@ -35,7 +34,6 @@ import { Habit } from '../../core/models/habit.model';
         </p>
       </div>
 
-      <!-- نموذج إضافة عادة جديدة -->
       <div class="add-habit-card">
         <h3>{{ 'DASHBOARD.ADD_NEW' | translate }}</h3>
         <form [formGroup]="habitForm" (ngSubmit)="onAddHabit()">
@@ -64,7 +62,6 @@ import { Habit } from '../../core/models/habit.model';
         </form>
       </div>
 
-      <!-- قائمة العادات -->
       <div class="habits-list">
         @if (habitService.isLoading()) {
           <p class="loading-msg">{{ 'DASHBOARD.LOADING' | translate }}</p>
@@ -108,8 +105,6 @@ import { Habit } from '../../core/models/habit.model';
   styles: [`
     .dashboard-container { max-width: 800px; margin: 0 auto; padding: 1rem; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .lang-btn { background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; color: var(--text-primary); font-weight: bold; }
-
     .calendar-card { background: var(--bg-card); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); }
     .date-picker-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .date-picker-header input[type="date"] { padding: 0.4rem 0.8rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); }
@@ -122,6 +117,7 @@ import { Habit } from '../../core/models/habit.model';
     .time-picker { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
     .time-picker input { padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); }
     .add-habit-card button[type="submit"] { padding: 0.6rem 1.2rem; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .add-habit-card button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .habit-item { background: var(--bg-card); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); }
     .title-group { display: flex; align-items: center; gap: 0.5rem; }
@@ -146,39 +142,34 @@ export class DashboardComponent implements OnInit {
   private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
 
-  selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
+  selectedDate = signal<string>(this.formatDateToString(new Date()));
   isSubmitting = signal<boolean>(false);
 
   filteredHabits = computed(() => {
     const habits = this.habitService.habits();
     const selectedStr = this.selectedDate();
 
-    const [sYear, sMonth, sDay] = selectedStr.split('-').map(Number);
-    const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
-
     return habits.filter(habit => {
       if (!habit.createdAt) return true;
 
-      const createdDate = new Date(habit.createdAt);
-      const createdDateObj = new Date(
-        createdDate.getFullYear(),
-        createdDate.getMonth(),
-        createdDate.getDate()
-      );
+      const createdDateStr = this.normalizeDate(habit.createdAt);
 
-      if (selectedDateObj < createdDateObj) return false;
+      if (selectedStr < createdDateStr) return false;
 
       if (habit.archivedAt) {
-        const archivedDate = new Date(habit.archivedAt);
-        const archivedDateObj = new Date(
-          archivedDate.getFullYear(),
-          archivedDate.getMonth(),
-          archivedDate.getDate()
-        );
-        if (selectedDateObj >= archivedDateObj) return false;
+        const archivedDateStr = this.normalizeDate(habit.archivedAt);
+        if (selectedStr >= archivedDateStr) return false;
       }
 
       const freq = habit.frequency || 'daily';
+
+      const [sYear, sMonth, sDay] = selectedStr.split('-').map(Number);
+      const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
+      selectedDateObj.setHours(0, 0, 0, 0);
+
+      const [cYear, cMonth, cDay] = createdDateStr.split('-').map(Number);
+      const createdDateObj = new Date(cYear, cMonth - 1, cDay);
+      createdDateObj.setHours(0, 0, 0, 0);
 
       switch (freq) {
         case 'daily':
@@ -218,6 +209,17 @@ export class DashboardComponent implements OnInit {
     return habit._id || (habit as any).id || '';
   }
 
+  private formatDateToString(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private normalizeDate(dateInput: string | Date): string {
+    return this.habitService.toLocalYMD(dateInput);
+  }
+
   onDateChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.value) {
@@ -226,11 +228,14 @@ export class DashboardComponent implements OnInit {
   }
 
   resetToToday(): void {
-    this.selectedDate.set(new Date().toISOString().split('T')[0]);
+    this.selectedDate.set(this.formatDateToString(new Date()));
   }
 
   isCompletedOnSelectedDate(habit: Habit): boolean {
-    return habit.completedDates?.includes(this.selectedDate()) || false;
+    if (!habit.completedDates || habit.completedDates.length === 0) return false;
+    const targetDate = this.selectedDate();
+
+    return habit.completedDates.some((d) => this.normalizeDate(d) === targetDate);
   }
 
   toggleHabit(habit: Habit): void {
@@ -243,20 +248,35 @@ export class DashboardComponent implements OnInit {
     if (this.habitForm.invalid) return;
     this.isSubmitting.set(true);
 
-    this.habitService.createHabit(this.habitForm.value as any).subscribe({
+    const payload = { ...this.habitForm.value };
+    if (!payload.reminderTime) delete payload.reminderTime;
+    if (!payload.description) delete payload.description;
+
+    this.habitService.createHabit(payload as any).subscribe({
       next: () => {
-        this.habitForm.reset({ frequency: 'daily' });
+        this.habitForm.reset({
+          title: '',
+          description: '',
+          frequency: 'daily',
+          reminderTime: ''
+        });
         this.isSubmitting.set(false);
       },
-      error: () => this.isSubmitting.set(false)
+      error: (err) => {
+        console.error('فشل إنشاء العادة:', err);
+        this.isSubmitting.set(false);
+      }
     });
   }
 
   onDelete(id: string): void {
     if (!id) return;
     const confirmMsg = this.translate.instant('DASHBOARD.CONFIRM_DELETE');
+
     if (confirm(confirmMsg)) {
-      this.habitService.deleteHabit(id).subscribe();
+      this.habitService.deleteHabit(id).subscribe({
+        error: (err) => console.error('فشل حذف العادة:', err)
+      });
     }
   }
 

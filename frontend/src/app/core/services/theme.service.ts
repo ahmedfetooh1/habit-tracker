@@ -6,7 +6,7 @@ export type ThemeMode = 'light' | 'dark';
   providedIn: 'root'
 })
 export class ThemeService {
-  currentTheme = signal<ThemeMode>('light');
+  readonly currentTheme = signal<ThemeMode>('light');
 
   constructor() {
     this.initTheme();
@@ -15,13 +15,13 @@ export class ThemeService {
   private initTheme(): void {
     const savedTheme = localStorage.getItem('app-theme') as ThemeMode;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    const initialTheme: ThemeMode = savedTheme || (prefersDark ? 'dark' : 'light');
 
     this.setTheme(initialTheme);
   }
 
   toggleTheme(): void {
-    const nextTheme = this.currentTheme() === 'light' ? 'dark' : 'light';
+    const nextTheme: ThemeMode = this.currentTheme() === 'light' ? 'dark' : 'light';
     this.setTheme(nextTheme);
   }
 
