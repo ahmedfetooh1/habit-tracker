@@ -91,7 +91,7 @@ export class HabitService {
     );
 
     // 2. إرسال الطلب وحفظ النتيجة
-    return this.http.patch<any>(`${this.apiUrl}/${id}/toggle`, { date: targetDate }).pipe(
+    return this.http.post<any>(`${this.apiUrl}/${id}/toggle`, { date: targetDate }).pipe(
       tap({
         next: (res: any) => {
           const updatedHabit: Habit = res?.data || res?.habit || res;
