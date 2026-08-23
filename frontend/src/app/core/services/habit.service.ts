@@ -1,14 +1,16 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, catchError, shareReplay } from 'rxjs';
 import { Habit } from '../models/habit.model';
 import { environment } from '../../../environments/environment';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HabitService {
   private http = inject(HttpClient);
+  private snackBar = inject(MatSnackBar);
   private apiUrl = `${environment.apiUrl}/habits`;
 
   readonly habits = signal<Habit[]>([]);

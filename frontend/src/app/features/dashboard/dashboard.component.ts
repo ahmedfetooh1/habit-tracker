@@ -241,7 +241,18 @@ export class DashboardComponent implements OnInit {
   toggleHabit(habit: Habit): void {
     const id = this.getHabitId(habit);
     if (!id) return;
-    this.habitService.toggleHabitStatus(id, this.selectedDate()).subscribe();
+    // optional loading flag per habit (could be added to UI later)
+    this.habitService.toggleHabitStatus(id, this.selectedDate()).subscribe({
+      next: (res) => {
+        this.snackBar.open(this.translate.instant('DASHBOARD.TOGGLE_SUCCESS'), 'OK', { duration: 3000 });
+        // Refresh habits to reflect updated streak/completedDates
+        this.habitService.getHabits().subscribe();
+      },
+      error: (err) => {
+        console.error('فشل تعديل العادة:', err);
+        this.snackBar.open(this.translate.instant('DASHBOARD.TOGGLE_ERROR'), 'OK', { duration: 5000 });
+      }
+    });
   }
 
   onAddHabit(): void {
