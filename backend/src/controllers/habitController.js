@@ -36,7 +36,7 @@ const getHabits = async (req, res, next) => {
                 isCompletedToday: (completedDatesMap.get(habit._id.toString()) || []).includes(todayStr)
             }));
 
-        res.json(result);
+        res.json({ success: true, data: result });
     } catch (error) {
         next(error);
     }
@@ -139,12 +139,7 @@ const toggleHabitStatus = async (req, res, next) => {
         }
         await habit.save();
 
-        res.json({
-            ...habit.toObject(),
-            completedDates,
-            streak: habit.currentStreak || 0,
-            isCompletedToday
-        });
+        res.json({ success: true, data: { ...habit.toObject(), completedDates, streak: habit.currentStreak || 0, longestStreak: habit.longestStreak || 0, isCompletedToday } });
     } catch (error) {
         next(error);
     }
