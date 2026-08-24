@@ -11,6 +11,11 @@ const formatDate = (dateInput) => {
 };
 
 const getHabits = async (req, res, next) => {
+    // Ensure authenticated user
+    if (!req.user) {
+        res.status(401);
+        return next(new Error('Not authorized, user missing'));
+    }
     try {
         const habits = await Habit.find({ user: req.user._id }).sort({ createdAt: -1 });
         const habitIds = habits.map(h => h._id);
@@ -36,13 +41,18 @@ const getHabits = async (req, res, next) => {
                 isCompletedToday: (completedDatesMap.get(habit._id.toString()) || []).includes(todayStr)
             }));
 
-        res.json({ success: true, data: result });
+        res.json(result);
     } catch (error) {
         next(error);
     }
 };
 
 const createHabit = async (req, res, next) => {
+    // Ensure authenticated user
+    if (!req.user) {
+        res.status(401);
+        return next(new Error('Not authorized, user missing'));
+    }
     try {
         const { title, description, category, goalType, targetValue, unit, frequency, targetDays, reminderTime } = req.body;
         

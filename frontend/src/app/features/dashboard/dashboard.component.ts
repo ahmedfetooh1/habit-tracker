@@ -2,14 +2,16 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HabitService } from '../../core/services/habit.service';
 import { LanguageService } from '../../core/services/language.service';
+
 import { Habit } from '../../core/models/habit.model';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, MatSnackBarModule],
   template: `
     <div class="dashboard-container">
       <div class="top-bar">
@@ -141,6 +143,7 @@ export class DashboardComponent implements OnInit {
   langService = inject(LanguageService);
   private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
 
   selectedDate = signal<string>(this.formatDateToString(new Date()));
   isSubmitting = signal<boolean>(false);
@@ -186,7 +189,7 @@ export class DashboardComponent implements OnInit {
 
         case 'yearly':
           return selectedDateObj.getDate() === createdDateObj.getDate() &&
-                 selectedDateObj.getMonth() === createdDateObj.getMonth();
+                  selectedDateObj.getMonth() === createdDateObj.getMonth();
 
         default:
           return true;
