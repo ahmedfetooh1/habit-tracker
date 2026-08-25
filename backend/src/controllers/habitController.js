@@ -1,163 +1,178 @@
 const Habit = require('../models/Habit');
 const HabitLog = require('../models/HabitLog');
 
-// @route   POST /api/habits
+// دالة مساعدة لتوحيد تنسيق التواريخ إلى YYYY-MM-DD
+const formatDate = (dateInput) => {
+    if (!dateInput) return '';
+    if (typeof dateInput === 'string') {
+        return dateInput.split('T')[0];
+    }
+    return new Date(dateInput).toISOString().split('T')[0];
+};
+
+const getHabits = async (req, res, next) => {
+    try {
+        const habits = await Habit.find({ user: req.user._id }).sort({ createdAt: -1 });
+        const habitIds = habits.map(h => h._id);
+
+        const completedLogs = await HabitLog.find({
+            habit: { $in: habitIds },
+            isCompleted: true
+        });
+
+        const completedDatesMap = new Map();
+        completedLogs.forEach(log => {
+            const hId = log.habit.toString();
+            if (!completedDatesMap.has(hId)) completedDatesMap.set(hId, []);
+            completedDatesMap.get(hId).push(formatDate(log.dateString));
+        });
+
+        const todayStr = formatDate(new Date());
+            const result = habits.map(habit => ({
+                ...habit.toObject(),
+                completedDates: completedDatesMap.get(habit._id.toString()) || [],
+                streak: habit.currentStreak || 0,
+                longestStreak: habit.longestStreak || 0,
+                isCompletedToday: (completedDatesMap.get(habit._id.toString()) || []).includes(todayStr)
+            }));
+
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 const createHabit = async (req, res, next) => {
     try {
         const { title, description, category, goalType, targetValue, unit, frequency, targetDays, reminderTime } = req.body;
-        const habit = await Habit.create({
-        user: req.user._id,
-        title,
-        description,
-        category,
-        goalType,
-        targetValue,
-        unit,
-        frequency,
-        targetDays,
-        reminderTime
-    });
-    res.status(201).json(habit);
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @route   GET /api/habits/calendar?date=YYYY-MM-DD&dayName=Mon
-const getCalendarHabits = async (req, res, next) => {
-    try {
-        const { date, dayName } = req.query; // date: "2026-08-11"
         
-        const habits = await Habit.find({
-        user: req.user._id,
-        $or: [
-            { frequency: 'daily' },
-            { frequency: 'custom', targetDays: dayName }
-        ]
+        const habit = await Habit.create({
+            user: req.user._id,
+            title,
+            description,
+            category,
+            goalType,
+            targetValue,
+            unit,
+            frequency: frequency || 'daily',
+            targetDays,
+            reminderTime
         });
 
-        const logs = await HabitLog.find({
-        user: req.user._id,
-        dateString: date
-    });
+        const habitObj = habit.toObject();
 
-    const logMap = new Map();
-    logs.forEach(log => logMap.set(log.habit.toString(), log));
-
-    const result = habits.map(habit => {
-        const log = logMap.get(habit._id.toString());
-        const currentProgress = log ? log.progressValue : 0;
-        const isCompleted = log ? log.isCompleted : false;
-        const progressPercentage = Math.min(Math.round((currentProgress / habit.targetValue) * 100), 100);
-
-        return {
-            _id: habit._id,
-            title: habit.title,
-            goalType: habit.goalType,
-            targetValue: habit.targetValue,
-            unit: habit.unit,
-            reminderTime: habit.reminderTime,
-            currentProgress,
-            progressPercentage,
-            isCompleted,
-            logId: log ? log._id : null
-        };
-    });
-
-    res.json(result);
+        res.status(201).json({
+            ...habitObj,
+            completedDates: [],
+            streak: 0
+        });
     } catch (error) {
         next(error);
     }
 };
 
-// @route   POST /api/habits/log
-const logHabitProgress = async (req, res, next) => {
+const computeCurrentStreak = (completedDates) => {
+    if (!completedDates || completedDates.length === 0) return 0;
+    // Sort dates descending
+    const sorted = completedDates.sort((a, b) => new Date(b) - new Date(a));
+    let streak = 1;
+    for (let i = 1; i < sorted.length; i++) {
+        const prev = new Date(sorted[i - 1]);
+        const curr = new Date(sorted[i]);
+        const diff = (prev - curr) / (1000 * 60 * 60 * 24);
+        if (diff === 1) {
+            streak++;
+        } else {
+            break;
+        }
+    }
+    return streak;
+};
+
+const toggleHabitStatus = async (req, res, next) => {
     try {
-        const { habitId, dateString, progressValue, notes } = req.body;
-        
-        const habit = await Habit.findById(habitId);
+        const { id } = req.params;
+        const { date } = req.body;
+
+        // If no date is provided, default to today
+        const targetDate = date ? new Date(date) : new Date();
+        const targetDateStr = formatDate(targetDate);
+
+        const habit = await Habit.findOne({ _id: id, user: req.user._id });
         if (!habit) {
-        res.status(404);
-        throw new Error('العادة غير موجودة');
-    }
+            res.status(404);
+            throw new Error('العادة غير موجودة أو غير مصرح لك بالتعديل عليها');
+        }
 
-    const isCompleted = progressValue >= habit.targetValue;
+        const existingLog = await HabitLog.findOne({
+            habit: id,
+            dateString: targetDateStr
+        });
 
-    const log = await HabitLog.findOneAndUpdate(
-        { habit: habitId, dateString },
-        { 
-            user: req.user._id,
-            progressValue, 
-            isCompleted,
-            notes 
-        },
-        { new: true, upsert: true }
-    );
+        if (existingLog && existingLog.isCompleted) {
+            await HabitLog.deleteOne({ _id: existingLog._id });
+        } else {
+            await HabitLog.findOneAndUpdate(
+                { habit: id, dateString: targetDateStr },
+                {
+                    user: req.user._id,
+                    habit: id,
+                    dateString: targetDateStr,
+                    progressValue: habit.targetValue || 1,
+                    isCompleted: true
+                },
+                { upsert: true, new: true }
+            );
+        }
 
-    res.json({ message: 'تم تحديث التقدم بنجاح', log });
+        const allLogs = await HabitLog.find({ habit: id, isCompleted: true });
+        const completedDates = allLogs.map(l => formatDate(l.dateString));
+
+        const todayStr = formatDate(new Date());
+        const isCompletedToday = completedDates.includes(todayStr);
+
+        // Compute and update streaks
+        const currentStreak = computeCurrentStreak(completedDates);
+        habit.currentStreak = currentStreak;
+        if (currentStreak > (habit.longestStreak || 0)) {
+            habit.longestStreak = currentStreak;
+        }
+        await habit.save();
+
+        res.json({
+            ...habit.toObject(),
+            completedDates,
+            streak: habit.currentStreak || 0,
+            isCompletedToday
+        });
     } catch (error) {
         next(error);
     }
 };
 
-
-// @route   PUT /api/habits/:id
-const updateHabit = async (req, res, next) => {
-    try {
-        const habit = await Habit.findById(req.params.id);
-
-    if (!habit) {
-        res.status(404);
-        throw new Error('العادة غير موجودة');
-    }
-
-    if (habit.user.toString() !== req.user._id.toString()) {
-        res.status(401);
-        throw new Error('غير مصرح لك بتعديل هذه العادة');
-    }
-
-    const updatedHabit = await Habit.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, runValidators: true }
-    );
-
-    res.json(updatedHabit);
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @route   DELETE /api/habits/:id
 const deleteHabit = async (req, res, next) => {
     try {
-    const habit = await Habit.findById(req.params.id);
+        const habit = await Habit.findOne({ _id: req.params.id, user: req.user._id });
 
-    if (!habit) {
-        res.status(404);
-        throw new Error('العادة غير موجودة');
-    }
+        if (!habit) {
+            res.status(404);
+            throw new Error('العادة غير موجودة أو غير مصرح لك بحذفها');
+        }
 
-    if (habit.user.toString() !== req.user._id.toString()) {
-        res.status(401);
-        throw new Error('غير مصرح لك بحذف هذه العادة');
-    }
+        const todayStr = formatDate(new Date());
+        habit.archivedAt = new Date(todayStr);
 
-    await habit.deleteOne();
-    
-    await HabitLog.deleteMany({ habit: req.params.id });
+        await habit.save();
 
-    res.json({ message: 'تم حذف العادة وسجلاتها التاريخية بنجاح' });
+        res.json({ message: 'تم أرشفة العادة بنجاح ولن تظهر في الأيام القادمة' });
     } catch (error) {
         next(error);
     }
 };
 
-
 module.exports = { 
+    getHabits,
     createHabit, 
-    getCalendarHabits, 
-    logHabitProgress, 
-    updateHabit, 
+    toggleHabitStatus,
     deleteHabit 
 };

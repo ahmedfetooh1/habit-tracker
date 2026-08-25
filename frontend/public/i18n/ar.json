@@ -1,0 +1,75 @@
+{
+  "NAV": {
+    "APP_TITLE": "متابع العادات 🎯",
+    "HOME": "الرئيسية",
+    "STATS": "الإحصائيات 📊",
+    "PROFILE": "الملف الشخصي 👤",
+    "LOGOUT": "خروج",
+    "LANG_BTN": "English"
+  },
+  "DASHBOARD": {
+    "TITLE": "لوحة متابعة العادات 🎯",
+    "SELECT_DATE": "📅 اختر التاريخ لمتابعة العادات:",
+    "TODAY": "اليوم",
+    "VIEW_DATE": "عرض عادات يوم:",
+    "ADD_NEW": "إضافة عادة جديدة",
+    "HABIT_NAME": "اسم العادة (مثلاً: القراءة)",
+    "SHORT_DESC": "وصف قصير (اختياري)",
+    "REMINDER_TIME": "وقت التنبيه ⏰:",
+    "ADD_BTN": "إضافة العادة",
+    "ADDING_BTN": "جاري الإضافة...",
+    "LOADING": "جاري تحميل العادات...",
+    "EMPTY": "لا توجد عادات مسجلة لهذا التاريخ ({{date}}).",
+    "STREAK": "🔥 التتابع: {{count}} أيام",
+    "COMPLETED": "مكتملة ✔️",
+    "MARK_COMPLETED": "تحديد كـ مكتملة ⭕",
+    "DELETE": "حذف",
+    "CONFIRM_DELETE": "هل أنت تأكد من حذف هذه العادة؟",
+    "FREQUENCIES": {
+      "DAILY": "يومية",
+      "WEEKLY": "أسبوعية",
+      "MONTHLY": "شهرية",
+      "YEARLY": "سنوية"
+    }
+  },
+  "ANALYTICS": {
+    "TITLE": "إحصائيات العادات 📊",
+    "TOTAL_HABITS": "إجمالي العادات",
+    "COMPLETED_TODAY": "المكتملة اليوم",
+    "COMPLETION_RATE": "نسبة الإنجاز",
+    "BEST_STREAK": "أعلى تتابع 🔥",
+    "WEEKLY_PROGRESS": "التقدم الأسبوعي",
+    "MONTHLY_OVERVIEW": "نظرة عامة شهرية",
+    "NO_DATA": "لا توجد بيانات كافية لعرض الإحصائيات بعد."
+  },
+  "PROFILE": {
+    "TITLE": "الملف الشخصي 👤",
+    "NAME": "الاسم الكامل",
+    "EMAIL": "البريد الإلكتروني",
+    "JOINED_DATE": "تاريخ الانضمام",
+    "EDIT_PROFILE": "تعديل الملف الشخصي",
+    "SAVE_CHANGES": "حفظ التغييرات",
+    "CHANGE_PASSWORD": "تغيير كلمة المرور",
+    "THEME_PREFERENCE": "المظهر المفضل"
+  },
+  "AUTH": {
+    "LOGIN_TITLE": "تسجيل الدخول",
+    "REGISTER_TITLE": "إنشاء حساب جديد",
+    "EMAIL_PLACEHOLDER": "أدخل بريدك الإلكتروني",
+    "PASSWORD_PLACEHOLDER": "أدخل كلمة المرور",
+    "NAME_PLACEHOLDER": "أدخل اسمك الكامل",
+    "LOGIN_BTN": "تسجيل الدخول",
+    "REGISTER_BTN": "إنشاء الحساب",
+    "NO_ACCOUNT": "ليس لديك حساب؟",
+    "HAVE_ACCOUNT": "لديك حساب بالفعل؟",
+    "CREATE_ONE": "سجل الآن",
+    "SIGN_IN": "سجل دخولك"
+  },
+  "COMMON": {
+    "SUCCESS": "تمت العملية بنجاح",
+    "ERROR": "حدث خطأ ما، يرجى المحاولة لاحقاً",
+    "CANCEL": "إلغاء",
+    "SAVE": "حفظ",
+    "LOADING": "جاري التحميل..."
+  }
+}
