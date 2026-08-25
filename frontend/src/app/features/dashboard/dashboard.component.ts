@@ -2,14 +2,16 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HabitService } from '../../core/services/habit.service';
 import { LanguageService } from '../../core/services/language.service';
+
 import { Habit } from '../../core/models/habit.model';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, MatSnackBarModule],
   template: `
     <div class="dashboard-container">
       <div class="top-bar">
@@ -141,6 +143,7 @@ export class DashboardComponent implements OnInit {
   langService = inject(LanguageService);
   private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
 
   selectedDate = signal<string>(this.formatDateToString(new Date()));
   isSubmitting = signal<boolean>(false);
@@ -186,7 +189,7 @@ export class DashboardComponent implements OnInit {
 
         case 'yearly':
           return selectedDateObj.getDate() === createdDateObj.getDate() &&
-                 selectedDateObj.getMonth() === createdDateObj.getMonth();
+                  selectedDateObj.getMonth() === createdDateObj.getMonth();
 
         default:
           return true;
@@ -241,7 +244,18 @@ export class DashboardComponent implements OnInit {
   toggleHabit(habit: Habit): void {
     const id = this.getHabitId(habit);
     if (!id) return;
-    this.habitService.toggleHabitStatus(id, this.selectedDate()).subscribe();
+    // optional loading flag per habit (could be added to UI later)
+    this.habitService.toggleHabitStatus(id, this.selectedDate()).subscribe({
+      next: (res) => {
+        this.snackBar.open(this.translate.instant('DASHBOARD.TOGGLE_SUCCESS'), 'OK', { duration: 3000 });
+        // Refresh habits to reflect updated streak/completedDates
+        this.habitService.getHabits().subscribe();
+      },
+      error: (err) => {
+        console.error('فشل تعديل العادة:', err);
+        this.snackBar.open(this.translate.instant('DASHBOARD.TOGGLE_ERROR'), 'OK', { duration: 5000 });
+      }
+    });
   }
 
   onAddHabit(): void {

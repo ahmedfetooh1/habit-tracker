@@ -14,7 +14,7 @@ import { LanguageService } from '../../services/language.service';
     <nav class="navbar">
       <div class="logo-group">
         <div class="logo">
-          <a routerLink="/dashboard">🎯 {{ 'NAV.APP_TITLE' | translate }}</a>
+          <a routerLink="/dashboard"> {{ 'NAV.APP_TITLE' | translate }}</a>
         </div>
 
         @if (authService.isAuthenticated()) {

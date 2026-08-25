@@ -1,6 +1,6 @@
 {
   "NAV": {
-    "APP_TITLE": "Habit Tracker 🎯",
+    "APP_TITLE": "Habit Tracker ",
     "HOME": "Home",
     "STATS": "Statistics 📊",
     "PROFILE": "Profile 👤",
@@ -8,7 +8,7 @@
     "LANG_BTN": "عربي"
   },
   "DASHBOARD": {
-    "TITLE": "Habit Tracker Dashboard 🎯",
+    "TITLE": "Habit Tracker Dashboard ",
     "SELECT_DATE": "📅 Select date to track habits:",
     "TODAY": "Today",
     "VIEW_DATE": "Viewing habits for:",
@@ -20,7 +20,7 @@
     "ADDING_BTN": "Adding...",
     "LOADING": "Loading habits...",
     "EMPTY": "No habits recorded for this date ({{date}}).",
-    "STREAK": "🔥 Streak: {{count}} days",
+    "STREAK": " Streak: {{count}} days",
     "COMPLETED": "Completed ✔️",
     "MARK_COMPLETED": "Mark as completed ⭕",
     "DELETE": "Delete",
@@ -37,7 +37,7 @@
     "TOTAL_HABITS": "Total Habits",
     "COMPLETED_TODAY": "Completed Today",
     "COMPLETION_RATE": "Completion Rate",
-    "BEST_STREAK": "Best Streak 🔥",
+    "BEST_STREAK": "Best Streak ",
     "WEEKLY_PROGRESS": "Weekly Progress",
     "MONTHLY_OVERVIEW": "Monthly Overview",
     "NO_DATA": "Not enough data to display analytics yet."

@@ -30,7 +30,7 @@ import { Habit } from '../../core/models/habit.model';
 
         <div class="stat-card">
           <h3>{{ 'ANALYTICS.BEST_STREAK' | translate }}</h3>
-          <p class="stat-number">{{ bestStreak() }} 🔥</p>
+          <p class="stat-number">{{ bestStreak() }} </p>
         </div>
       </div>
     </div>

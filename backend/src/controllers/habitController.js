@@ -11,6 +11,11 @@ const formatDate = (dateInput) => {
 };
 
 const getHabits = async (req, res, next) => {
+    // Ensure authenticated user
+    if (!req.user) {
+        res.status(401);
+        return next(new Error('Not authorized, user missing'));
+    }
     try {
         const habits = await Habit.find({ user: req.user._id }).sort({ createdAt: -1 });
         const habitIds = habits.map(h => h._id);
@@ -43,6 +48,11 @@ const getHabits = async (req, res, next) => {
 };
 
 const createHabit = async (req, res, next) => {
+    // Ensure authenticated user
+    if (!req.user) {
+        res.status(401);
+        return next(new Error('Not authorized, user missing'));
+    }
     try {
         const { title, description, category, goalType, targetValue, unit, frequency, targetDays, reminderTime } = req.body;
         
@@ -139,12 +149,7 @@ const toggleHabitStatus = async (req, res, next) => {
         }
         await habit.save();
 
-        res.json({
-            ...habit.toObject(),
-            completedDates,
-            streak: habit.currentStreak || 0,
-            isCompletedToday
-        });
+        res.json({ success: true, data: { ...habit.toObject(), completedDates, streak: habit.currentStreak || 0, longestStreak: habit.longestStreak || 0, isCompletedToday } });
     } catch (error) {
         next(error);
     }
